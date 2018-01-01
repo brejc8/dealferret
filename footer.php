@@ -32,6 +32,18 @@ else
   </div>
 </footer>
 
+<script type="text/javascript">
+  $(function() {
+    // Handler for .ready() called.
+    // OnClick handler for the "select all" checkbox on the stores sidebar
+    $("#select-all-stores").on("click", function() {
+      let isSelectAllChecked = document.getElementById("select-all-stores").checked;
+
+      $('#stores-panel :checkbox:enabled').prop('checked', isSelectAllChecked);
+    });
+  });
+</script>
+
 </body>
 </html>
 

@@ -115,15 +115,16 @@ if (isset($_GET["store"]))
 }
 
 ?>
-<form id="products_form" action="/products.php">
+<div class="row">
+<div class="col-md-9 col-sm-12 col-xs-12">
+    <form id="products_form" action="/products.php">
 
- <ul class="nav nav-tabs">
-   <li class="active"><a href="#discount" data-toggle="tab" aria-expanded="true">Discount</a></li>
-   <li class=""><a href="#store" data-toggle="tab" aria-expanded="false">Stores</a></li>
-   <li class=""><a href="#tag" data-toggle="tab" aria-expanded="false">Tags</a></li>
- </ul>
- <div id="myTabContent" class="tab-content panel panel-default">
-   <div class="tab-pane fade active in panel-body" id="discount">
+     <ul class="nav nav-tabs">
+       <li class="active"><a href="#discount" data-toggle="tab" aria-expanded="true">Discount</a></li>
+       <li class=""><a href="#tag" data-toggle="tab" aria-expanded="false">Tags</a></li>
+     </ul>
+     <div id="myTabContent" class="tab-content panel panel-default">
+       <div class="tab-pane fade active in panel-body" id="discount">
 <?php
 if ($show_deals)
 {
@@ -207,6 +208,19 @@ else
 <?php
 $stores_list = array();
 
+$storesSidebarString = '
+    <div class="col-md-3 col-sm-12 col-xs-12">
+      <form id="stores_form" action="/products.php">
+        <div class="panel panel-primary" id="stores-panel">
+          <div class="panel-heading">
+            <h3 class="panel-title">Stores</h3>
+          </div>
+          <div class="panel-body" style="height: 800px; overflow-y: scroll">
+            <div style="font-weight: bold; margin-bottom: 15px;">
+                <input type="checkbox" id="select-all-stores" /> Select All
+            </div>
+            <div id="stores">';
+        
 $result = mysqli_query($con, "SELECT store.name AS name, store.id AS id FROM store ORDER BY LOWER(name)");
 while($row = mysqli_fetch_assoc($result))
 {
@@ -215,8 +229,19 @@ while($row = mysqli_fetch_assoc($result))
 		$checked = " checked";
 	else
 		$checked = "";
-    echo '<label><img width=100 height=50 src="store/'.$row['id'].'.png" alt="'.$row['name'].'" class="img-check'.$checked.'"><input type="checkbox" name="store[]" value="'.$row['id'].'" class="hidden"'.$checked.'></label>';
+    
+    $storesSidebarString .= '<div><input type="checkbox" name="store[]" value="'.$row['id'].'" id="'.$row['name'].'_checkbox" '.$checked.' /> <label for="'.$row['name'].'_checkbox" style="font-weight:normal;">'.$row['name'].'</label></div>';
 }
+        
+        
+$storesSidebarString .= '</div>
+      </div>
+      <div class="panel-footer">
+        <button class="btn btn-success checkbox-reset">Reset</button>
+    <button type="submit" class="btn btn-primary pull-right">Submit</button>
+      </div>
+    </div>
+</form></div>'
 ?>
    </div>
    <div>
@@ -421,14 +446,16 @@ while($row = mysqli_fetch_assoc($result)) {
     echo "</tr>";
 }
 
-echo "</tbody></table></div>";
+echo "</tbody></table></div></div>";
+    
+echo $storesSidebarString;
 
 $extra = http_build_query($form_data);
 if ($extra != "")
 	$extra = "&".$extra;
 
 echo "\n\n\n\n";
-echo "\n<ul class=\"pagination pagination-lg\">";
+echo "\n</div><div class='row'><ul class=\"pagination pagination-lg\">";
 
 
 if  ($page == 0)
@@ -457,7 +484,7 @@ else
 {
     echo '<li class="disabled"><a href="#">&gt;&gt;</a></li>';
 }
-echo "</ul>";
+echo "</ul></div>";
 
 require ('footer.php');
 ?>
