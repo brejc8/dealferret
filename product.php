@@ -1,11 +1,11 @@
-<?php 
+<?php
+$head_extra = '<meta property="og:image:url" content="https://dealferret.uk/image.php?id='.$_GET["id"].'" />';
 require_once ('db.php');
 require ('header.php');
 
 date_default_timezone_set('Europe/London');
 
 page_karma(0.1);
-
 
 $query = sprintf("SELECT store.id AS id, store.name AS name, store.colour AS colour  FROM store");
 
@@ -64,8 +64,8 @@ if ($row != NULL)
 if (isset($_SESSION["USERID"])){
 ?>
 <div class="col-lg-2"><div class="btn-group-vertical">
-<button class="btn <?php echo $vote > 0 ? "btn-success" : "btn-default";?>" id="upvote"><i class="cr-icon glyphicon glyphicon-thumbs-up"></i></button>
-<button class="btn <?php echo $vote < 0 ? "btn-danger" : "btn-default";?>" id="downvote"><i class="cr-icon glyphicon glyphicon-thumbs-down"></i></button>
+<button type="button" class="btn <?php echo $vote > 0 ? "btn-success" : "btn-secondary";?>" id="upvote"><i class="far fa-thumbs-up"></i></button>
+<button type="button" class="btn <?php echo $vote < 0 ? "btn-danger" : "btn-secondary";?>" id="downvote"><i class="far fa-thumbs-down"></i></button>
 <script type="text/javascript">
 
 $('#upvote').on('click', function (e) {
@@ -113,16 +113,38 @@ $('#downvote').on('click', function (e) {
 });
 
 
-</script>
+</script></div></div>
 <?php } ?>
-</div></div>
 </div>
 <?php
+echo '<div>';
 $query = sprintf("SELECT tag.id as id, tag_key.str as keystr, tag.value as val, COUNT(*) as count FROM product AS key_prod JOIN product ON product.group_same = key_prod.group_same JOIN product_tag on product_tag.productid = product.id JOIN tag on tag.id = product_tag.tagid join tag_key on tag.tag_key = tag_key.id where key_prod.id = '%s' GROUP BY tag_key.str, tag.value ORDER BY COUNT(*) DESC", $con->real_escape_string($product_id));
 $result = mysqli_query($con, $query);
 while($row = mysqli_fetch_assoc($result)){
-    echo '<a href="products.php?tag%5B%5D='.$row['id'].'">'.$row['keystr'].':'.$row['val']. '</a>('.$row['count'].') ';
+    echo '<a class="badge ';
+    if ($row['keystr'] == "category")
+        echo 'badge-primary';
+    else
+        echo 'badge-secondary';
+    echo '" href="products.php?discount=0%2C100&tag%5B%5D='.$row['id'].'">'.$row['keystr'].':'.$row['val']. '</a>';
     }
+echo '</div>';
+
+
+echo '<div>';
+$query = sprintf("SELECT product.id as pid, review_url.url as url, review_url.review_site as review_site FROM product AS key_prod JOIN product ON product.group_same = key_prod.group_same JOIN review_url on review_url.productid = product.id where key_prod.id = '%s' GROUP BY url", $con->real_escape_string($product_id));
+$result = mysqli_query($con, $query);
+while($row = mysqli_fetch_assoc($result)){
+    echo '<a class="badge badge-secondary" ';
+    echo 'href="'.$row['url'].'"><img  height="20" width="40" src="/reviewsite/'.$row['review_site'].'.png"></a>';
+    if (isset($_SESSION["ADMIN"]))
+    {
+        echo '<form><input class="review_url_product_id" type="hidden" value="'. $row['pid'] .'"><input class="review_url_review_site" type="hidden" value="'. $row["review_site"] .'"><input type="text" class="review_url" value="' . $row["url"] . '" /></form>';
+
+    }
+    }
+echo '</div>';
+
 
 
 if (isset($_SESSION["ADMIN"]))

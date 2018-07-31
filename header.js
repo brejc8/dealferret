@@ -58,7 +58,7 @@ $('document').ready(function()
    beforeSend: function()
    { 
     $("#login-error").fadeOut();
-    $("#login-btn").html('<span class="glyphicon glyphicon-transfer"></span> &nbsp; sending ...');
+    $("#login-btn").html('<i class="fas fa-exchange-alt"></i> &nbsp; sending ...');
    },
    success :  function(response)
       {      
@@ -69,8 +69,8 @@ $('document').ready(function()
      }
      else{
          
-      $("#login-error").html('<div class="alert alert-danger"> <span class="glyphicon glyphicon-info-sign"></span> &nbsp; '+response+' !</div>');
-      $("#login-btn").html('<span class="glyphicon glyphicon-log-in"></span> &nbsp; Sign In');
+      $("#login-error").html('<div class="alert alert-danger"> <i class="fas fa-info-circle"></i> &nbsp; '+response+' !</div>');
+      $("#login-btn").html('<i class="fas fa-sign-in-alt"></i> &nbsp; Sign In');
       $("#login-error").fadeIn();
      }
      }
@@ -133,7 +133,7 @@ $('document').ready(function()
         beforeSend: function()
         {
           $("#error").fadeOut();
-          $("#btn-register").html('<span class="glyphicon glyphicon-transfer"></span> &nbsp; sending ...');
+          $("#btn-register").html('<i class="fas fa-exchange-alt"></i> &nbsp; sending ...');
         },
         success : function(data)
               {            
@@ -144,8 +144,8 @@ $('document').ready(function()
 		    setTimeout( function(){ window.location = "/"; }, 1000 );
                 }
                 else{
-                    $("#error").html('<div class="alert alert-danger"><span class="glyphicon glyphicon-info-sign"></span> &nbsp; '+data+' !</div>');
-                    $("#btn-register").html('<span class="glyphicon glyphicon-log-in"></span> &nbsp; Create Account');
+                    $("#error").html('<div class="alert alert-danger"><i class="fas fa-info-circle"></i> &nbsp; '+data+' !</div>');
+                    $("#btn-register").html('<i class="fas fa-sign-in-alt"></i> &nbsp; Create Account');
                     $("#error").fadeIn();
                 }
               }
@@ -216,7 +216,36 @@ $(document).ready(function(){
 
 });
 
+tagset = new Set();
+tagindex = 0;
+
+function addtagtolist(text, key, invert)
+{
+    key = Number(key);
+    if (tagset.has(key))
+        return;
+    tagset.add(key);
+    $('#taglist').append('<div><div class="btn-group" data-toggle="buttons"><label class="btn btn-success'+(invert ? '':' active')+'">' +
+        '<input type="radio"  name="tag['+tagindex+']" value="'+ key + '" style="display:none" autocomplete="off"'+(invert ? '':' checked')+'><i class="cr-icon fa fa-check"></i></label>' +
+        '<label class="btn btn-danger'+(invert ? ' active':'')+'">' +
+        '<input type="radio"  name="tag['+tagindex+']" value="~'+ key + '" style="display:none" autocomplete="off"'+(invert ? ' checked':'')+'><i class="cr-icon fa fa-times"></i></label>' +
+        '<label class="btn btn-secondary">' +
+        '<input type="radio"  name="tag['+tagindex+']" value="" style="display:none" autocomplete="off"><i class="cr-icon far fa-square"></i></label>' +
+        '</div>'+ text +'</div>');
+    tagindex += 1;
+}
+
+function addtagtolistclick()
+{
+    $('.nav-tabs a[href="#tag"]').tab('show')
+	var text = $(this).attr("value"); 
+	var key = $(this).attr("key"); 
+    addtagtolist(text, key, 0)
+    return false;
+}
+
 $( document ).ready(function() {
+    $('.pagetagitem').click(addtagtolistclick);
 	$("#tagentry").keyup(function() {
 		var keyword = $("#tagentry").val();
 		if (keyword.length >= 2) {
@@ -226,15 +255,10 @@ $( document ).ready(function() {
 				$('#tagsresults').html('');
 				var results = jQuery.parseJSON(data);
 				$(results).each(function(key, value) {
-					$('#tagsresults').append('<div class="item" key=' + value[0] + ' value="'+ value[1] + '">' + value[1] + '</div>');
-				})
+					$('#tagsresults').append('<a href="#" class="newtagitem badge badge-secondary" key=' + value[0] + ' value="'+ value[1] + '">' + value[1] + ' +</a> ');
+				});
 
-			    $('.item').click(function() {
-			    	var text = $(this).attr("value"); 
-			    	var key = $(this).attr("key"); 
-			    	$('#taglist').append('<div><label><input type="checkbox" name="tag[]" value="'+ key + '" checked><span class="cr"><i class="cr-icon glyphicon glyphicon-ok"></i></span>' + text + '</label></div>');
-
-			    })
+			    $('.newtagitem').click(addtagtolistclick);
 
 			});
 		} else {

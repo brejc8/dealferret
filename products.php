@@ -73,31 +73,46 @@ $filter = "";
 $filterid = 0;
 
 $form_data = array();
-foreach (array("tag", "ntag", "discount", "store", "ferreted", "age") as $form_element)
+foreach (array("tag", "discount", "store", "ferreted", "age") as $form_element)
 {
 	if (isset($_GET[$form_element]))
 		$form_data[$form_element] = $_GET[$form_element];
 }
 	
 $tags = array();
-$ntags = array();
 
 if (isset($_GET["tag"]))
 {
- foreach ($_GET["tag"] as $tagid){
-    $tags[] = $tagid;
-    $filterid++;
-    $joinfilter .=  sprintf(" JOIN product_tag AS product_tag".$filterid." ON product_tag".$filterid.".productid = product.id AND product_tag".$filterid.".tagid = '%s'", $con->real_escape_string($tagid));
+    foreach ($_GET["tag"] as $tagid)
+    {
+        if ($tagid == "")
+            continue;
+        $filterid++;
+        if (substr( $tagid, 0, 1) != "~")
+        {
+            $tags[] = [$tagid, 0];
+            $joinfilter .=  sprintf(" JOIN product_tag AS product_tag".$filterid." ON product_tag".$filterid.".productid = product.id AND product_tag".$filterid.".tagid = '%s'", $con->real_escape_string($tagid));
+        }
+        else
+        {
+            $tagid = substr($tagid,1);
+            $tags[] = [$tagid, 1];
+            $joinfilter .=  sprintf(" LEFT JOIN product_tag AS product_tag".$filterid." ON product_tag".$filterid.".productid = product.id AND product_tag".$filterid.".tagid = '%s'", $con->real_escape_string($tagid));
+	        $filter .=  " AND product_tag".$filterid.".productid is NULL ";
+        }
     }
 }
 
-if (isset($_GET["ntag"]))
+if (isset($_GET["value"]))
 {
- foreach ($_GET["ntag"] as $tagid){
-    $ntags[] = $tagid;
-    $filterid++;
-    $joinfilter .=  sprintf(" LEFT JOIN product_tag AS product_tag".$filterid." ON product_tag".$filterid.".productid = product.id AND product_tag".$filterid.".tagid = '%s'", $con->real_escape_string($tagid));
-	$filter .=  " AND product_tag".$filterid.".productid is NULL ";
+    foreach ($_GET["value"] as $value)
+    {
+        if ($value == "")
+            continue;
+        $filterid++;
+        $joinfilter .=  sprintf(" INNER JOIN product_value AS product_value".$filterid." ON product_value".$filterid.".productid = product.id AND product_value".$filterid.".valuekeyid = 4 and product_value".$filterid.".value > '%s'", $con->real_escape_string($value));
+        $filterid++;
+        $joinfilter .=  sprintf(" INNER JOIN product_value AS product_value".$filterid." ON product_value".$filterid.".productid = product.id AND product_value".$filterid.".valuekeyid = 5 and product_value".$filterid.".value > '%s'", $con->real_escape_string(100));
     }
 }
 
@@ -115,15 +130,15 @@ if (isset($_GET["store"]))
 }
 
 ?>
+<div class="card mb-3">
 <form id="products_form" action="/products.php">
-
  <ul class="nav nav-tabs">
-   <li class="active"><a href="#discount" data-toggle="tab" aria-expanded="true">Discount</a></li>
-   <li class=""><a href="#store" data-toggle="tab" aria-expanded="false">Stores</a></li>
-   <li class=""><a href="#tag" data-toggle="tab" aria-expanded="false">Tags</a></li>
+   <li class="nav-item"><a href="#discount" class="nav-link active show" data-toggle="tab" >Discount</a></li>
+   <li class="nav-item"><a href="#store" class="nav-link" data-toggle="tab" >Stores</a></li>
+   <li class="nav-item"><a href="#tag" class="nav-link" data-toggle="tab" >Tags</a></li>
  </ul>
- <div id="myTabContent" class="tab-content panel panel-default">
-   <div class="tab-pane fade active in panel-body" id="discount">
+ <div id="myTabContent" class="tab-content">
+   <div class="tab-pane fade active show" id="discount">
 <?php
 if ($show_deals)
 {
@@ -215,7 +230,7 @@ while($row = mysqli_fetch_assoc($result))
 		$checked = " checked";
 	else
 		$checked = "";
-    echo '<label><img width=100 height=50 src="store/'.$row['id'].'.png" alt="'.$row['name'].'" class="img-check'.$checked.'"><input type="checkbox" name="store[]" value="'.$row['id'].'" class="hidden"'.$checked.'></label>';
+    echo '<label><img width=100 height=50 src="store/'.$row['id'].'.png" alt="'.$row['name'].'" class="img-check'.$checked.'"><input type="checkbox" name="store[]" value="'.$row['id'].'" style="display:none" class="invisible"'.$checked.'></label>';
 }
 ?>
    </div>
@@ -231,20 +246,25 @@ while($row = mysqli_fetch_assoc($result))
 
         <div class="checkbox" id="taglist">
 <?php
-	foreach ($tags as $tag_id)
+    $tagindex = 0;
+    echo '<script type="text/javascript">';
+    echo '$( document ).ready(function() {';
+	foreach ($tags as list($tag_id, $inverted))
 	{
+        $tagindex++;
         $query = $con->prepare("SELECT tag.value as value, tag_key.str as tkey FROM `tag` JOIN tag_key on tag.tag_key = tag_key.id WHERE tag.id=?");
         $query->bind_param('i', $tag_id);
         $query->execute();
         $result = $query->get_result();
         $row = mysqli_fetch_assoc($result);
-        echo '<div><label><input type="checkbox" name="tag[]" value="'.$tag_id.'" checked><span class="cr"><i class="cr-icon glyphicon glyphicon-ok"></i></span>'.ucfirst($row["tkey"]).": $row[value]".'</label></div>';
+    	echo 'addtagtolist("'.ucfirst($row["tkey"]).': '.$row["value"].'", '.$tag_id.','.$inverted.');';
 	}
+        echo '});</script>';
 
 ?>
         </div>
 
-		<input type="text" class="form-control" value="" placeholder="Search" id="tagentry" autocomplete="off" onkeypress="return event.keyCode != 13;">
+		<input type="text" class="form-control" value="" placeholder="Search - shows selectable tags below" id="tagentry" autocomplete="off" onkeypress="return event.keyCode != 13;">
         <div id="tagsresults" ></div>
 
 
@@ -255,11 +275,10 @@ while($row = mysqli_fetch_assoc($result))
    </div>
  </div>
 </form>
+</div>
 
 <?php
 
-if ($show_deals)
-{
 if (isset($_SESSION["USERID"]))
 {
     $query = $con->prepare("SELECT * FROM users WHERE id=?");
@@ -268,6 +287,8 @@ if (isset($_SESSION["USERID"]))
     $result = $query->get_result();
     $userdata = mysqli_fetch_assoc($result);
     $delay = karma_to_delay($userdata["karma"]);
+    if ($_SESSION["USERID"] == 1)
+        $delay = 0;
 }
 else
 {
@@ -280,6 +301,9 @@ else
 </div>
 <?php
 }
+
+if ($show_deals)
+{
 
 $query = sprintf("SELECT COUNT(*) as count
     FROM pricechange JOIN product ON product.id = pricechange.productid " . $joinfilter . "
@@ -321,13 +345,9 @@ $table = '<div class="">
             <table class="table table-striped table-condensed table-hover">
                 <thead>
                     <tr>
-                        <th>Date</th>
-                        <th>Store</th>
-                        <th>Product</th>
+                        <th>Image</th>
                         <th>Description</th>
-                        <th>Best Price</th>
-                        <th>Current Price</th>
-                        <th>Discount</th>
+                        <th>Price</th>
                     </tr>
                 </thead>
                 <tbody>';
@@ -336,20 +356,37 @@ $table = '<div class="">
 elseif ($show_ferreted)
 {
 
+$query = sprintf("SELECT COUNT(*) as count
+    FROM ferreted JOIN product ON product.id = ferreted.productid " . $joinfilter . "
+    WHERE (ferreted.level > %f) AND (ferreted.level < %f) AND ferreted.date > DATE_SUB(NOW(), INTERVAL " . $delay . " SECOND )", rating_to_votes($ferreted_min), rating_to_votes($ferreted_max));
+
+
+$query = $query . $filter;
+$result = mysqli_query($con, $query);
+$row = mysqli_fetch_assoc($result);
+
+if ($row["count"] > 0)
+{
+?>
+<div class="alert alert-dismissible alert-warning">
+  <button type="button" class="close" data-dismiss="alert">&times;</button>
+  <p>There are <?php echo $row["count"];?> deals still to reveal</p>
+</div>
+<?php
+}
+
 $query = sprintf("SELECT ferreted.date AS date, product.name AS name, product.storeid AS storeid, product.id AS id, ferreted.level as liked, product.price as price, product.multiprice as multiprice
     FROM ferreted JOIN product ON product.id = ferreted.productid " . $joinfilter . "
-    WHERE (ferreted.level > %f) AND (ferreted.level < %f) " . $filter . " 
-    ORDER BY ferreted.date DESC LIMIT 100 OFFSET %d", rating_to_votes($ferreted_min), rating_to_votes($ferreted_max), $page * 100);
+    WHERE (ferreted.level > %f) AND (ferreted.level < %f) AND ferreted.date < DATE_SUB(NOW(), INTERVAL " . $delay . " SECOND )", rating_to_votes($ferreted_min), rating_to_votes($ferreted_max));
+$query = $query . $filter;
+$query = $query . sprintf(" ORDER BY ferreted.date DESC LIMIT 100 OFFSET %d ", $page * 100);
 
 $table = '<div class="">
             <table class="table table-striped table-condensed table-hover">
                 <thead>
                     <tr>
-                        <th>Date</th>
-                        <th>Store</th>
-                        <th>Product</th>
+                        <th>Image</th>
                         <th>Description</th>
-                        <th>Price</th>
                         <th>Liked</th>
                     </tr>
                 </thead>
@@ -358,7 +395,7 @@ $table = '<div class="">
 }
 else
 {
-$query = sprintf("SET STATEMENT max_statement_time=10 FOR SELECT product.name AS name, product.storeid AS storeid, product.id AS id, product.price as price, product.multiprice as multiprice 
+$query = sprintf("SET STATEMENT max_statement_time=30 FOR SELECT product.name AS name, product.storeid AS storeid, product.id AS id, product.price as price, product.multiprice as multiprice 
     FROM product " . $joinfilter . "
     WHERE TRUE " . $filter . " AND last_seen >= SUBDATE(CURDATE(),3)
     ORDER BY price ASC LIMIT 100 OFFSET %d", $page * 100);
@@ -367,8 +404,7 @@ $table = '<div class="">
             <table class="table table-striped table-condensed table-hover">
                 <thead>
                     <tr>
-                        <th>Store</th>
-                        <th>Product</th>
+                        <th>Image</th>
                         <th>Description</th>
                         <th>Price</th>
                     </tr>
@@ -386,36 +422,62 @@ echo $table;
 $openCell = "<td>";
 $closeCell = "</td>";
 while($row = mysqli_fetch_assoc($result)) {
+    $query = sprintf("SELECT tag.id as id, tag.value as val, tag_key.str as keystr  FROM product AS product JOIN product_tag on product_tag.productid = product.id JOIN tag on tag.id = product_tag.tagid join tag_key on tag.tag_key = tag_key.id where product.id = '%s' and tag_key.str = 'category' ORDER BY val DESC", $con->real_escape_string($row["id"]));
+    $tag_result = mysqli_query($con, $query);
+    $tagstring = "";
+    while($tag_row = mysqli_fetch_assoc($tag_result)){
+        $tagstring .= '<a class="pagetagitem badge badge-secondary" key="'.$tag_row['id'].'" value="'.ucfirst($tag_row['keystr']) . ": " . $tag_row['val'].'" href="products.php?discount=0%2C100&tag%5B%5D='.$tag_row['id'].'">'.$tag_row['val']. ' +</a>';
+        }
+
     echo "<tr>";      
 
     $itemcount = $itemcount + 1;
 	
 
+    echo $openCell . '<a href="/product.php?id='. $row["id"] . '"><img class="rounded" width=100 height=100 src="'.product_image($row["id"]).'" alt="'.htmlspecialchars($row["name"]).'"></a>' . $closeCell;
+    echo $openCell;
+    echo '<div class="productdescription"><a href="/product.php?id='. $row["id"] . '">' . $row["name"]. "</a></div>";
+    echo '<div><a href="/products.php?discount=0%2C100&store%5B%5D='.$row['storeid'].'"><img class="float-right rounded" width=120 height=60 src="store/'.$row['storeid']. '.png" alt="'.$stores_list[$row['storeid']].'"></a>';
 	if ($show_deals || $show_ferreted)
-    	echo $openCell . $row['date'] . $closeCell;
-    echo $openCell . '<a href="/products.php?min_discount=0%2C100&store%5B%5D='.$row['storeid'].'"><img width=60 height=30 src="store/'.$row['storeid']. '.png" alt="'.$stores_list[$row['storeid']].'"></a>' . $closeCell;
-    echo $openCell . '<a href="/product.php?id='. $row["id"] . '"><img width=50 height=50 src="'.product_image($row["id"]).'" alt="'.$row["name"].'"></a>' . $closeCell;
-    echo $openCell . "<a href=\"/product.php?id=". $row["id"] . "\">" . $row["name"]. "</a>" . $closeCell;
+    	echo time_elapsed_string($row['date']);
+    if ($tagstring != "")
+        echo '<div>' . $tagstring . '</div>';
+    echo "</div>" . $closeCell;
 
 	if ($show_deals)
 	{
     	$discount = (($row["newprice"] / $row["oldprice"]) - 1)*100;
+    	echo $openCell;
+        echo '<div class="oldprice">&#163;' . $row["oldprice"] . "</div>";
+    	echo '<div class="newprice">&#163;' .  $row["newprice"] . "</b></div>";
+        $blue = 0;
+        $red = 0;
+        $green = 0;
+        if ($discount > 0) $blue = $discount;
+        if ($discount < 0) $red = ((-$discount) / 60) * 255;
+        if ($discount < -60) $green = ((-$discount-60) / 60) * 255;
+        if ($blue > 255) $blue = 255;
+        if ($red > 255) $red = 255;
+        if ($green > 255) $green = 255;
     	$discount = vsprintf ("%d", $discount)."%";
-    	echo $openCell . "&#163;" . $row["oldprice"] . $closeCell;
-    	echo $openCell . "&#163;" .  $row["newprice"] . $closeCell;
-    	echo $openCell . $discount . $closeCell;
+        
+    	echo '<div style="color:rgb('.(int)$red,",".(int)$green.",".(int)$blue.');" class="discount_percent">' . $discount . "</div>";
+        echo $closeCell;
 	}
+    elseif ($show_ferreted)
+    {
+    	echo $openCell . '<div class="discount_percent">' . round(votes_to_rating($row["liked"])). '%</div>';
+	    echo '<div class="newprice">&#163;' . $row["price"];
+        if ($row["multiprice"] != NULL)
+		    echo " (" . "&#163;" . $row["multiprice"] . ")";
+        echo "</div>" . $closeCell;
+    }
     else
     {
-	    if ($row["multiprice"] == NULL)
-    	    echo $openCell . "&#163;" . $row["price"] . $closeCell;
-	    else
-		    echo $openCell . "&#163;" . $row["price"] . " (" . "&#163;" . $row["multiprice"] . ")" . $closeCell;
-    }
-
-    if ($show_ferreted)
-    {
-    	echo $openCell . round(votes_to_rating($row["liked"])). "%" . $closeCell;
+	    echo $openCell . '<div class="newprice">&#163;' . $row["price"];
+        if ($row["multiprice"] != NULL)
+		    echo " (" . "&#163;" . $row["multiprice"] . ")";
+        echo "</div>" . $closeCell;
     }
 
     echo "</tr>";
@@ -433,11 +495,11 @@ echo "\n<ul class=\"pagination pagination-lg\">";
 
 if  ($page == 0)
 {
-    echo '<li class="disabled"><a href="#">&lt;&lt;</a></li>';
+    echo '<li class="page-item disabled"><a class="page-link" href="#">&lt;&lt;</a></li>';
 }
 else
 {
-    echo '<li><a href="/products.php?page='.($page-1).$extra.'">&lt;&lt;</a></li>';
+    echo '<li class="page-item"><a class="page-link" href="/products.php?page='.($page-1).$extra.'">&lt;&lt;</a></li>';
 }
 
 $ps = $page - 6;
@@ -445,17 +507,17 @@ if ($ps < 0)
     $ps = 0;
 for ($p	= $ps; $p < $page; $p++)
 {
-    echo '<li><a href="/products.php?page='.$p.$extra.'">'.($p+1).'</a></li>';
+    echo '<li class="page-item"><a class="page-link" href="/products.php?page='.$p.$extra.'">'.($p+1).'</a></li>';
 }
 
-echo '<li class="active"><a href="/products.php?page='.($page).$extra.'">'.($page+1).'</a></li>';
+echo '<li class="page-item active"><a class="page-link" href="/products.php?page='.($page).$extra.'">'.($page+1).'</a></li>';
 if ($itemcount == 100)
 {
-    echo '<li><a href="/products.php?page='.($page+1).$extra.'">&gt;&gt;</a></li>';
+    echo '<li class="page-item"><a class="page-link" href="/products.php?page='.($page+1).$extra.'">&gt;&gt;</a></li>';
 }
 else
 {
-    echo '<li class="disabled"><a href="#">&gt;&gt;</a></li>';
+    echo '<li class="page-item disabled"><a class="page-link" href="#">&gt;&gt;</a></li>';
 }
 echo "</ul>";
 

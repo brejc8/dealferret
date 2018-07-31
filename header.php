@@ -2,6 +2,8 @@
 require_once ('db.php');
 require_once ('user.php');
 
+date_default_timezone_set('Europe/London');
+
 function auto_version($file)
 {
   if(strpos($file, '/') !== 0 || !file_exists($_SERVER['DOCUMENT_ROOT'] . $file))
@@ -11,7 +13,34 @@ function auto_version($file)
   return preg_replace('{\\.([^./]+)$}', ".$mtime.\$1", $file);
 }
 
+function time_elapsed_string($datetime, $full = false) {
+    $now = new DateTime;
+    $ago = new DateTime($datetime);
+    $diff = $now->diff($ago);
 
+    $diff->w = floor($diff->d / 7);
+    $diff->d -= $diff->w * 7;
+
+    $string = array(
+        'y' => 'year',
+        'm' => 'month',
+        'w' => 'week',
+        'd' => 'day',
+        'h' => 'hour',
+        'i' => 'minute',
+        's' => 'second',
+    );
+    foreach ($string as $k => &$v) {
+        if ($diff->$k) {
+            $v = $diff->$k . ' ' . $v . ($diff->$k > 1 ? 's' : '');
+        } else {
+            unset($string[$k]);
+        }
+    }
+
+    if (!$full) $string = array_slice($string, 0, 1);
+    return $string ? implode(', ', $string) . ' ago' : 'just now';
+}
 
 function page_karma($karma)
 {
@@ -150,12 +179,19 @@ if (isset($_GET["ref"]))
     <meta name="msapplication-TileImage" content="/ms-icon-144x144.png">
     <meta name="theme-color" content="#ffffff">
     <!-- Latest compiled and minified CSS -->
-    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">    
     <!-- Optional theme -->
     <link rel="stylesheet" href="<?php echo auto_version('/bootstrap.min.css'); ?>">
     <!-- Latest compiled and minified JavaScript -->
-    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js" integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q" crossorigin="anonymous"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js" integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl" crossorigin="anonymous"></script>
+    <link href="https://use.fontawesome.com/releases/v5.0.6/css/all.css" rel="stylesheet">    
     <meta name="viewport" content="width=device-width, initial-scale=0.45">
+<?php
+if(isset($head_extra))
+    echo $head_extra;
+
+?>
 </head>
 
 <body>
@@ -165,6 +201,7 @@ if(!isset($_COOKIE["comply_cookie"])) {
     echo '<div id="cookies"><p>Our website uses cookies. By continuing we assume your permission to deploy cookies.';
     echo '<span class="cookie-accept" title="Okay, close"><img src="img/close.png" alt="Close"></span></p>  </div>';
     }
+
 
 $is_homepage = 0;
 if (isset($_SESSION["USERID"]))
@@ -184,54 +221,47 @@ if (isset($_SESSION["USERID"]))
 }
 ?>
 
-<nav class="navbar navbar-default">
-  <div class="container">
-    <div class="navbar-header">
-      <img src="/logo150.png" alt="Deal Ferret Logo" height="50">
-    </div>
-    <!-- Brand and toggle get grouped for better mobile display -->
-    <div class="navbar-header">
-      <a class="navbar-brand" href="https://dealferret.uk/">Deal Ferret</a>
-    </div>
+<div class="navbar navbar-expand-lg navbar-dark bg-primary">
+ <div class="mr-auto container">
+
+  <a class="navbar-brand" href="https://dealferret.uk"><img src="/logo150.png" alt="Deal Ferret Logo" height="50"></a>
+  <a class="navbar-brand" href="https://dealferret.uk/">Deal Ferret</a>
+  <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarColor01" aria-controls="navbarColor01" aria-expanded="false" aria-label="Toggle navigation" style="">
+    <span class="navbar-toggler-icon"></span>
+  </button>
+    <div class="collapse navbar-collapse container" id="navbarColor01" >
 
     <!-- Collect the nav links, forms, and other content for toggling -->
-    <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
-      <form class="navbar-form navbar-left" action="search.php" method="get">
-        <div class="form-group">
-          <input type="text" class="form-control" value="<?php if (isset($oldsearch)) echo htmlspecialchars($oldsearch); ?>" placeholder="Search" id="keyword" name="name" list="datalist">
-        </div>
-        <button type="submit" class="btn btn-default">Go</button>
+      <form class="form-inline my-2 my-lg-0" action="search.php" method="get">
+        <input type="text" class="form-control mr-sm-2" value="<?php if (isset($oldsearch)) echo htmlspecialchars($oldsearch); ?>" placeholder="Search" id="keyword" name="name" list="datalist">
+        <button type="submit" class="btn btn-secondary my-2 my-sm-0">Go</button>
       </form>
-      <div class="navbar-form navbar-left">
-      <button class="btn <?php echo $is_homepage ? "btn-success" : "btn-default";?>" id="makehomepage"><i class="cr-icon glyphicon glyphicon-home"></i></button> 
-      </div>
+      <div class="nav-item"><button type="button" class="ml-2 btn <?php echo $is_homepage ? "btn-success" : "btn-secondary";?>" id="makehomepage"><i class="fas fa-home"></i></button></div>
+    
 <script type="text/javascript">
-
 $('#makehomepage').on('click', function (e) {
     $.ajax({
         url:"/setbookmark.php?uri=<?php echo urlencode($_SERVER['REQUEST_URI']);?>",
         success:function(responsedata){
-            $('#makehomepage').removeClass('btn-default').addClass('btn-success');
+            $('#makehomepage').removeClass('btn-secondary').addClass('btn-success');
         }
      })
 });
-
-
 </script>
 
-      <ul class="nav navbar-nav navbar-right">
-        <li>
-            <a href="https://dealferret.uk/">Deals</a>
+      <ul class="navbar-nav ml-auto">
+        <li class="nav-item">
+            <a class="nav-link" href="https://dealferret.uk/">Deals</a>
         </li>
 <?php 
 if (isset($_SESSION["USERID"]))
 {
 ?>
-        <li class="dropdown">
-        <a class="dropdown-toggle" data-toggle="dropdown" role="button" aria-expanded="false" ><?php echo $_SESSION["USERNAME"]; ?> <span class="caret"></span></a>
-         <ul class="dropdown-menu" role="menu" aria-labelledby="dropdownMenuUserButton">
-          <li><a href="account.php">Account</a></li>
-          <li><a href="#" onclick="Logout();" >Log out</a></li>
+        <li class="nav-item dropdown">
+        <a class="nav-link dropdown-toggle" data-toggle="dropdown" href="#" role="button" aria-expanded="false" ><?php echo $_SESSION["USERNAME"]; ?> <span class="caret"></span></a>
+         <div class="dropdown-menu">
+          <a class="dropdown-item" href="account.php"><i class="fas fa-user"></i> &nbsp; Account</a>
+          <a class="dropdown-item" href="#" onclick="Logout();" ><i class="fas fa-sign-out-alt"></i> &nbsp; Log out</a>
          </ul>
 
         </li>
@@ -239,12 +269,9 @@ if (isset($_SESSION["USERID"]))
 <?php
 } else {
 ?>
-        <li class="dropdown">
-        <a class="dropdown-toggle" role="button" id="dropdownMenuDealButton" data-toggle="dropdown">Log-in<span class="caret"></span></a>
-        <div class="dropdown-menu" >
-        <div class="container col-md-12">
-        <h1>Log In</h1>
-        <hr/>
+        <li class="nav-item dropdown">
+        <a class="nav-link dropdown-toggle" href="#" role="button" id="dropdownMenuDealButton" data-toggle="dropdown">Log-in<span class="caret"></span></a>
+<div class="dropdown-menu" aria-labelledby="dropdown" >
         <form class="form-signin" method="post" id="login-form">
         <div id="login-error">
         <!-- error will be shown here ! -->
@@ -256,19 +283,16 @@ if (isset($_SESSION["USERID"]))
         <div class="form-group">
         <input type="password" class="form-control" placeholder="Password" name="login_password" id="login_password" />
         </div>
-        <hr />
+        <div class="dropdown-divider"></div>
         <div class="form-group">
-            <button type="submit" class="btn btn-default" name="login-btn" id="login-btn">
-            <span class="glyphicon glyphicon-log-in"></span> &nbsp; Sign In
+            <button type="submit" class="btn btn-secondary" name="login-btn" id="login-btn">
+            <i class="fas fa-sign-in-alt"></i> &nbsp; Sign In
             </button> 
         </div>  
       </form>
-      <div>
+      <div class="dropdown-divider"></div>
       <a href="register.php">Register</a>
-      </div>
  
-    </div>
-    
 </div>
 
         </li>
@@ -281,8 +305,8 @@ if (isset($_SESSION["USERID"]))
       </ul>
 
     </div><!-- /.navbar-collapse -->
-  </div><!-- /.container-fluid -->
-</nav>
+</div>
+</div>
     
 
 <div class="body container">

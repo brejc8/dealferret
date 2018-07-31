@@ -1,4 +1,3 @@
-</div>
 <?php
 $skimresources = 1;
 if (isset($skimresources))
@@ -23,14 +22,19 @@ else
 }
 ?>
 
-<footer class="footer">
-  <div class="well well-sm">
-    <ul class="nav nav-pills container">
-        <li><a href="/dealblog/index.php/about/">About</a></li>
-        <li><a href="/dealblog/">Blog</a></li>
+<footer>
+<nav class="navbar navbar-expand-lg navbar-light bg-light">
+    <ul class="navbar-nav mr-auto">
+      <li class="nav-item">
+        <a class="nav-link" href="/dealblog/index.php/about/">About</a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" href="/dealblog/">Blog</a>
+      </li>
     </ul>
-  </div>
+</nav>
 </footer>
+</div>
 
 </body>
 </html>

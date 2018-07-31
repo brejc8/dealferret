@@ -42,3 +42,13 @@ $( document ).ready(function() {
         });
 });
 
+$( document ).ready(function() {
+        $(".review_url").keyup(function() {
+           var pid = $(this).closest('form').find('.review_url_product_id').val();
+           var site = $(this).closest('form').find('.review_url_review_site').val();
+           var url = $(this).closest('form').find('.review_url').val();
+           $.get( "reviewurlupdate.php", { pid: pid, site: site, url: url});
+           
+        });
+});
+

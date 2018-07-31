@@ -33,7 +33,7 @@ require ('header.php');
         
         <div class="form-group">
             <button type="submit" class="btn btn-default" name="btn-register" id="btn-register">
-    		<span class="glyphicon glyphicon-log-in"></span> &nbsp; Create Account
+    		<i class="fas fa-sign-in-alt"></i> &nbsp; Create Account
 			</button> 
         </div>  
       </form>
